@@ -1,3 +1,18 @@
+// gxgujnk1993   27178316
+// 泰莫拉尔   38666451
+// 阿特洛玻絲与末三   41505116
+// lishu945   34904557
+// 不骂人不发黄图   60259365
+// 卯吴骆辰黎毕   60086897
+// shxtchhh   6373130
+// mafeigba   10927997
+// 那塔拉夏   34008960
+// 天之藍～   42255599
+// colaman2006   533348
+// Northcode   39147059
+// 舒特翔   19639523
+// 神妻天理   15403706
+
 const Koa = require('koa')
 const Axios = require('axios')
 const Author = require('./author')
@@ -13,6 +28,7 @@ function fetchData (page) {
   return new Promise((reslove, reject) => {
     Axios({
       method: 'post',
+      timeout: 5000,
       url: 'http://ngabbs.com/app_api.php?__lib=post&__act=list',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -31,16 +47,27 @@ function fetchData (page) {
 
 function getCurrentData (page) {
   return new Promise(async (resolve, reject) => {
-    let data = await fetchData(page)
+    let data = await fetchData(page).catch(err => {
+      console.log('fetchData 出错')
+    })
     resolve(data)
   })
 }
 
 async function listenNewMessage() {
-  const data = await getCurrentData(currentPage)
-  const result = data.result
-  const length = result.length
-  const lou = result[length - 1].lou
+  let data = await getCurrentData(currentPage).catch(err => {
+    console.log('getCurrentData 出错')
+  })
+  let result = data.result || null
+  if (!result) {
+    return
+  }
+  let length = result.length
+  let lou = result[length - 1].lou || null
+
+  if (!lou) {
+    return
+  }
 
   if (data.currentPage === data.totalPage) {
     if (currentFloor === lou) {
@@ -60,39 +87,49 @@ async function listenNewMessage() {
 
 function handleMessage (result, lou) {
   for (let i = currentFloor + 1; i <= lou; i++) {
-    const message = result.find(e => e.lou === i)
+    let message = result.find(e => e.lou === i)
     currentFloor = i
     sendMessage(message)
   }
 }
 
 function sendMessage (message) {
-  const author = Author.find(author => author.uid === message.author.uid)
+  let author = Author.find(author => author.uid === message.author.uid)
   if (!author) {
     console.log(`当前楼层${message.lou}，有新内容，但不是监听的大佬发言`)
     return
   }
-  const content = message.content.replace(/\[quote\].+\[\/quote\]|<b>.+<\/b>|\[img\].+\[\/img\]|<br\/>/g, '')
-  const body = `${message.lou}楼\n${content}`
+  let content = message.content.replace(/\[quote\].+\[\/quote\]|<b>.+<\/b>|\[img\].+\[\/img\]|<br\/>/g, '')
+  content = content.length <= 140 ? content : `${content.substring(0, 139)}...（帖子过长，请去股楼查看）`
+  let body = `${message.lou}楼\n${content}`
+  Receiver.forEach(receiver => {
+    handleAxios(receiver.id, author.name, body)
+  })
   console.log('*************************************')
-  console.log(`当前楼层${message.lou}`)
+  console.log(`当前楼层 ${message.lou}`)
   console.log(`作者 ${author.name}`)
   console.log(`内容 ${content}`)
   console.log('*************************************')
-  Receiver.forEach(receiver => {
-    Axios({
-      url: `https://api.day.app/${receiver.id}/${encodeURIComponent(author.name)}/${encodeURIComponent(body)}`
-    }).then(res => {
-      console.log('发送成功')
-    }).catch(err => {
-      console.log('发送失败')
-    })
+}
+
+function handleAxios (receiverId, authorName, body) {
+  Axios({
+    method: 'get',
+    timeout: 5000,
+    url: `https://api.day.app/${receiverId}/${encodeURIComponent(authorName)}/${encodeURIComponent(body)}`
+  }).then(res => {
+    console.log(`${receiverId} 发送成功`)
+  }).catch(err => {
+    console.log(`${receiverId} 发送失败，重新发送`)
+    handleAxios(receiverId, authorName, body)
   })
 }
 
 function init () {
   return new Promise(async (resolve, reject) => {
-    const data = await getCurrentData(9999999)
+    let data = await getCurrentData(9999999).catch(err => {
+      console.log('getCurrentData 出错')
+    })
     currentPage = data.totalPage
     currentFloor = data.vrows - 1
     resolve()
@@ -100,10 +137,16 @@ function init () {
 }
 
 async function start () {
-  await init()
-  await listenNewMessage()
+  await init().catch(err => {
+    console.log('init 出错')
+  })
+  await listenNewMessage().catch(err => {
+    console.log('listenNewMessage 出错')
+  })
   setInterval(async () => {
-    await listenNewMessage()
+    await listenNewMessage().catch(err => {
+      console.log('listenNewMessage 出错')
+    })
   }, 10000)
 }
 

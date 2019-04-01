@@ -1,6 +1,6 @@
 {
-  "name": "nga-smn",
-  "version": "1.0.0",
+  "name": "nga-stock-notice",
+  "version": "1.0.1",
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
