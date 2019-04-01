@@ -103,7 +103,7 @@ function sendMessage (message) {
   content = content.length <= 140 ? content : `${content.substring(0, 139)}...（帖子过长，请去股楼查看）`
   let body = `${message.lou}楼\n${content}`
   Receiver.forEach(receiver => {
-    handleAxios(receiver.id, author.name, body)
+    handleAxios(receiver, author, body)
   })
   console.log('*************************************')
   console.log(`当前楼层 ${message.lou}`)
@@ -112,16 +112,16 @@ function sendMessage (message) {
   console.log('*************************************')
 }
 
-function handleAxios (receiverId, authorName, body) {
+function handleAxios (receiver, author, body) {
   Axios({
     method: 'get',
     timeout: 5000,
-    url: `https://api.day.app/${receiverId}/${encodeURIComponent(authorName)}/${encodeURIComponent(body)}`
+    url: `https://api.day.app/${receiver.id}/${encodeURIComponent(author.name)}/${encodeURIComponent(body)}`
   }).then(res => {
-    console.log(`${receiverId} 发送成功`)
+    console.log(`${receiver.name} 发送成功`)
   }).catch(err => {
-    console.log(`${receiverId} 发送失败，重新发送`)
-    handleAxios(receiverId, authorName, body)
+    console.log(`${receiver.name} 发送失败，重新发送`)
+    handleAxios(receiver, author, body)
   })
 }
 
@@ -141,7 +141,7 @@ async function start () {
     console.log('init 出错')
   })
   await listenNewMessage().catch(err => {
-    console.log('listenNewMessage 出错')
+    console.log('start listenNewMessage 出错')
   })
   setInterval(async () => {
     await listenNewMessage().catch(err => {
