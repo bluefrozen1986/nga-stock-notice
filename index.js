@@ -71,57 +71,60 @@ async function listenNewMessage() {
 
   if (data.currentPage === data.totalPage) {
     if (currentFloor === lou) {
-      console.log(`当前楼层${currentFloor}，没有新内容`)
+      console.log(`当前页码${data.currentPage}，当前楼层${currentFloor}，没有新内容`)
       return
     }
-    handleMessage(result, lou)
+    handleMessage(result, data.currentPage, lou)
   } else {
     if (currentFloor === lou) {
       currentPage += 1
     } else {
-      handleMessage(result, lou)
+      handleMessage(result, data.currentPage, lou)
       currentPage += 1
     }
   }
 }
 
-function handleMessage (result, lou) {
+function handleMessage (result, currentPage, lou) {
   for (let i = currentFloor + 1; i <= lou; i++) {
     let message = result.find(e => e.lou === i)
     currentFloor = i
-    sendMessage(message)
+    sendMessage(message, currentPage)
   }
 }
 
-function sendMessage (message) {
+function sendMessage (message, currentPage) {
   let author = Author.find(author => author.uid === message.author.uid)
   if (!author) {
-    console.log(`当前楼层${message.lou}，有新内容，但不是监听的大佬发言`)
+    console.log(`当前页码${currentPage}，当前楼层${message.lou}，有新内容，但不是收听的大佬发言`)
     return
   }
   let content = message.content.replace(/\[quote\].+\[\/quote\]|<b>.+<\/b>|\[img\].+\[\/img\]|<br\/>/g, '')
   content = content.length <= 140 ? content : `${content.substring(0, 139)}...（帖子过长，请去股楼查看）`
   let body = `${message.lou}楼\n${content}`
+  let url = `https://bbs.nga.cn/read.php?tid=16053925&page=${currentPage}#l${message.lou}`
   Receiver.forEach(receiver => {
-    handleAxios(receiver, author, body)
+    handleAxios(receiver, author, body, url)
   })
   console.log('*************************************')
+  console.log(`当前页码 ${currentPage}`)
   console.log(`当前楼层 ${message.lou}`)
   console.log(`作者 ${author.name}`)
   console.log(`内容 ${content}`)
+  console.log(`跳转链接 ${url}`)
   console.log('*************************************')
 }
 
-function handleAxios (receiver, author, body) {
+function handleAxios (receiver, author, body, url) {
   Axios({
     method: 'get',
     timeout: 5000,
-    url: `https://api.day.app/${receiver.id}/${encodeURIComponent(author.name)}/${encodeURIComponent(body)}`
+    url: `https://api.day.app/${receiver.id}/${encodeURIComponent(author.name)}/${encodeURIComponent(body)}?url=${encodeURIComponent(url)}`
   }).then(res => {
     console.log(`${receiver.name} 发送成功`)
   }).catch(err => {
     console.log(`${receiver.name} 发送失败，重新发送`)
-    handleAxios(receiver, author, body)
+    handleAxios(receiver, author, body, url)
   })
 }
 
