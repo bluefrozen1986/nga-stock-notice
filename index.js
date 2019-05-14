@@ -1,25 +1,13 @@
-// gxgujnk1993   27178316
-// 泰莫拉尔   38666451
-// 阿特洛玻絲与末三   41505116
-// lishu945   34904557
-// 不骂人不发黄图   60259365
-// 卯吴骆辰黎毕   60086897
-// shxtchhh   6373130
-// mafeigba   10927997
-// 那塔拉夏   34008960
-// 天之藍～   42255599
-// colaman2006   533348
-// Northcode   39147059
-// 舒特翔   19639523
-// 神妻天理   15403706
-
 const Koa = require('koa')
 const Axios = require('axios')
 const Author = require('./author')
 const Receiver = require('./receiver')
 
-const app = new Koa()
-app.listen(3000)
+const App = new Koa()
+const PORT = 3000
+const INTERVAL = 10000
+
+App.listen(PORT)
 
 let currentPage = 1 // 当前页码
 let currentFloor = 1 // 当前楼层
@@ -71,7 +59,7 @@ async function listenNewMessage() {
 
   if (data.currentPage === data.totalPage) {
     if (currentFloor === lou) {
-      console.log(`当前页码${data.currentPage}，当前楼层${currentFloor}，没有新内容`)
+      // console.log(`当前页码${data.currentPage}，当前楼层${currentFloor}，没有新内容`)
       return
     }
     handleMessage(result, data.currentPage, lou)
@@ -96,7 +84,7 @@ function handleMessage (result, currentPage, lou) {
 function sendMessage (message, currentPage) {
   let author = Author.find(author => author.uid === message.author.uid)
   if (!author) {
-    console.log(`当前页码${currentPage}，当前楼层${message.lou}，有新内容，但不是收听的大佬发言`)
+    // console.log(`当前页码${currentPage}，当前楼层${message.lou}，有新内容，但不是收听的大佬发言`)
     return
   }
   let content = message.content.replace(/\[quote\].+\[\/quote\]|<b>.+<\/b>|\[img\].+\[\/img\]|<br\/>/g, '')
@@ -106,13 +94,13 @@ function sendMessage (message, currentPage) {
   Receiver.forEach(receiver => {
     handleAxios(receiver, author, body, url)
   })
-  console.log('*************************************')
-  console.log(`当前页码 ${currentPage}`)
-  console.log(`当前楼层 ${message.lou}`)
-  console.log(`作者 ${author.name}`)
-  console.log(`内容 ${content}`)
-  console.log(`跳转链接 ${url}`)
-  console.log('*************************************')
+  // console.log('*************************************')
+  // console.log(`当前页码 ${currentPage}`)
+  // console.log(`当前楼层 ${message.lou}`)
+  // console.log(`作者 ${author.name}`)
+  // console.log(`内容 ${content}`)
+  // console.log(`跳转链接 ${url}`)
+  // console.log('*************************************')
 }
 
 function handleAxios (receiver, author, body, url) {
@@ -121,7 +109,7 @@ function handleAxios (receiver, author, body, url) {
     timeout: 5000,
     url: `https://api.day.app/${receiver.id}/${encodeURIComponent(author.name)}/${encodeURIComponent(body)}?url=${encodeURIComponent(url)}`
   }).then(res => {
-    console.log(`${receiver.name} 发送成功`)
+    // console.log(`${receiver.name} 发送成功`)
   }).catch(err => {
     console.log(`${receiver.name} 发送失败，重新发送`)
     handleAxios(receiver, author, body, url)
@@ -150,7 +138,7 @@ async function start () {
     await listenNewMessage().catch(err => {
       console.log('listenNewMessage 出错')
     })
-  }, 10000)
+  }, INTERVAL)
 }
 
 start()
